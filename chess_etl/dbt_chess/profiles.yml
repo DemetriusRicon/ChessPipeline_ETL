@@ -1,0 +1,8 @@
+dbt_chess:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: /opt/airflow/data/duckdb/chess.duckdb
+      schema: bronze
+      threads: 4

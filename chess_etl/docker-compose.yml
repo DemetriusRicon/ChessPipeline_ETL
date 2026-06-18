@@ -1,0 +1,118 @@
+---
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - .env
+  environment:
+    &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    AIRFLOW__CORE__FERNET_KEY: ""
+    AIRFLOW__WEBSERVER__SECRET_KEY: chess_etl_secret_key_change_me
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
+    # Lichess token — pode ser sobrescrito pela Airflow Variable 'lichess_api_token'
+    LICHESS_API_TOKEN: ${LICHESS_API_TOKEN:}
+    LICHESS_USERNAME: ${LICHESS_USERNAME:-}
+    CHESS_COM_USERNAME: ${CHESS_COM_USERNAME:-}
+    CHESS_COM_USER_AGENT: ${CHESS_COM_USER_AGENT:-AntiGravity-ExportTool/1.0}
+    BRONZE_BASE_PATH: /opt/airflow/data/bronze
+    DBT_PROFILES_DIR: /opt/airflow/dbt_chess
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./src:/opt/airflow/src
+    - ./dbt_chess:/opt/airflow/dbt_chess
+    - ./data:/opt/airflow/data
+    - ./logs:/opt/airflow/logs
+  depends_on:
+    postgres:
+      condition: service_healthy
+  networks:
+    - chess_net
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: chess_postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    networks:
+      - chess_net
+    restart: unless-stopped
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: chess_airflow_init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username admin \
+          --firstname AntiGravity \
+          --lastname ETL \
+          --role Admin \
+          --email admin@antigravity.com \
+          --password admin
+        # Criar Airflow Variables com valores padrão (mock do token se não definido)
+        airflow variables set lichess_api_token "${LICHESS_API_TOKEN:-MOCK_LICHESS_TOKEN_REPLACE_ME}"
+        airflow variables set lichess_username "${LICHESS_USERNAME:-Demetrius01}"
+        airflow variables set chess_com_username "${CHESS_COM_USERNAME:-demetriusricon}"
+        airflow variables set bronze_base_path "/opt/airflow/data/bronze"
+        airflow variables set historical_months "3"
+        # Ensure DuckDB directory exists for dbt target
+        mkdir -p /opt/airflow/data/duckdb
+        echo "Airflow initialized with variables"
+    restart: on-failure
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: chess_airflow_webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: chess_airflow_scheduler
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "airflow", "jobs", "check", "--job-type", "SchedulerJob", "--hostname", "$${HOSTNAME}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+
+networks:
+  chess_net:
+    driver: bridge

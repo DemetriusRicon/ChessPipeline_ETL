@@ -1,0 +1,89 @@
+version: 2
+
+models:
+  - name: stg_chess_com_games
+    description: >
+      Partidas da Chess.com normalizadas e validadas (Bronze Layer).
+      Fonte: Parquet gerado pelo extractor Chess.com (PubAPI).
+    columns:
+      - name: game_id
+        description: "ID único da partida (extraído da URL)"
+        tests:
+          - not_null
+          - unique
+
+      - name: url
+        description: "Link direto para a partida na Chess.com"
+        tests:
+          - not_null
+
+      - name: end_time
+        description: "Timestamp UTC do fim da partida"
+        tests:
+          - not_null
+
+      - name: is_rated
+        description: "True se a partida é ranqueada"
+        tests:
+          - not_null
+
+      - name: time_class
+        description: "Categoria de tempo: bullet, blitz, rapid, daily"
+        tests:
+          - accepted_values:
+              values: ["bullet", "blitz", "rapid", "daily", "classical"]
+
+      - name: white_result
+        description: "Resultado do jogador branco"
+        tests:
+          - accepted_values:
+              values: ["win", "loss", "draw", "agreed", "stalemate",
+                       "repetition", "timeout", "resigned", "checkmated",
+                       "abandoned", "insufficient", "threecheck", "bughousepartnerlose"]
+
+      - name: black_result
+        description: "Resultado do jogador preto"
+        tests:
+          - accepted_values:
+              values: ["win", "loss", "draw", "agreed", "stalemate",
+                       "repetition", "timeout", "resigned", "checkmated",
+                       "abandoned", "insufficient", "threecheck", "bughousepartnerlose"]
+
+  - name: stg_lichess_games
+    description: >
+      Partidas do Lichess.org normalizadas e validadas (Bronze Layer).
+      Fonte: Parquet gerado via streaming ND-JSON do Lichess extractor.
+    columns:
+      - name: game_id
+        description: "ID único da partida Lichess"
+        tests:
+          - not_null
+          - unique
+
+      - name: created_at
+        description: "Timestamp UTC de criação da partida"
+        tests:
+          - not_null
+
+      - name: is_rated
+        description: "True se a partida é ranqueada"
+        tests:
+          - not_null
+
+      - name: speed
+        description: "Categoria de velocidade"
+        tests:
+          - accepted_values:
+              values: ["ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence"]
+
+      - name: white_result
+        description: "Resultado do jogador branco"
+        tests:
+          - accepted_values:
+              values: ["win", "loss", "draw"]
+
+      - name: black_result
+        description: "Resultado do jogador preto"
+        tests:
+          - accepted_values:
+              values: ["win", "loss", "draw"]

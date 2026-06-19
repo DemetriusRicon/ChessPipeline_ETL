@@ -80,7 +80,7 @@ docker compose up --build -d
 
 ## Token Lichess — 3 camadas de resolução
 
-O sistema resolve o token automaticamente em ordem de prioridade:
+O sistema resolve o token automaticamente em ordem de prioridade. Eu fiz esse processo pois da pra baixar informações de usuario sem a necessidade usar um toker de API. O Lichess é muito mais completo que o Chess.com .
 
 ```
 1. Airflow Variable 'lichess_api_token'   ← PRODUÇÃO (maior prioridade)
@@ -183,21 +183,3 @@ cd dbt_chess && dbt test
 | `clock_initial` | int64 |
 | `clock_increment` | int64 |
 | `ingestion_ts` | timestamp[UTC] |
-
----
-
-## Conformidade com APIs
-
-### Chess.com
-- ✅ User-Agent obrigatório (`AntiGravity-ExportTool/1.0`)
-- ✅ HTTP/2 + gzip
-- ✅ ETag / Last-Modified → cache condicional (304)
-- ✅ Logging de headers CDN (HIT/MISS/EXPIRED)
-- ✅ Acesso serial (sem paralelismo)
-
-### Lichess
-- ✅ Bearer Token via Airflow Variable
-- ✅ Accept: `application/x-ndjson`
-- ✅ Streaming chunk-by-chunk (sem buffer total)
-- ✅ Backoff de 60s em HTTP 429
-- ✅ Token mockado para testes sem credenciais

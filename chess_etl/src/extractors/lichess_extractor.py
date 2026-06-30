@@ -199,8 +199,7 @@ class LichessExtractor:
         """
         if self._is_mock:
             logger.warning(
-                "⚠️  Token mockado — retornando DataFrame de exemplo vazio. "
-                "Configure o token real para extração efetiva."
+                "Token mockado — retornando DataFrame de exemplo vazio. "
             )
             return self._mock_dataframe()
 
@@ -237,57 +236,6 @@ class LichessExtractor:
         df["clock_increment"] = pd.to_numeric(df["clock_increment"], errors="coerce").astype("Int64")
 
         return df
-
-    # ── Mock para testes sem token ────────────────────────────────────────────
-    def _mock_dataframe(self) -> pd.DataFrame:
-        """
-        Retorna um DataFrame de exemplo com 2 partidas mockadas.
-        Útil para desenvolvimento e CI sem credenciais Lichess.
-        """
-        mock_records = [
-            {
-                "game_id": "mock_game_001",
-                "rated": True,
-                "variant": "standard",
-                "speed": "blitz",
-                "perf": "blitz",
-                "created_at": datetime(2025, 1, 15, 12, 0, 0, tzinfo=timezone.utc),
-                "last_move_at": datetime(2025, 1, 15, 12, 5, 0, tzinfo=timezone.utc),
-                "status": "mate",
-                "white_id": "demetrius01",
-                "white_rating": 1500,
-                "white_result": "win",
-                "black_id": "opponent_mock",
-                "black_rating": 1480,
-                "black_result": "loss",
-                "moves": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6",
-                "clock_initial": 180,
-                "clock_increment": 2,
-                "ingestion_ts": datetime.now(tz=timezone.utc),
-            },
-            {
-                "game_id": "mock_game_002",
-                "rated": True,
-                "variant": "standard",
-                "speed": "bullet",
-                "perf": "bullet",
-                "created_at": datetime(2025, 1, 16, 9, 0, 0, tzinfo=timezone.utc),
-                "last_move_at": datetime(2025, 1, 16, 9, 2, 0, tzinfo=timezone.utc),
-                "status": "resign",
-                "white_id": "opponent_mock_2",
-                "white_rating": 1600,
-                "white_result": "win",
-                "black_id": "demetrius01",
-                "black_rating": 1505,
-                "black_result": "loss",
-                "moves": "d4 d5 c4 e6 Nc3 Nf6 Bg5",
-                "clock_initial": 60,
-                "clock_increment": 0,
-                "ingestion_ts": datetime.now(tz=timezone.utc),
-            },
-        ]
-        logger.info("Retornando %d partidas MOCKADAS.", len(mock_records))
-        return pd.DataFrame(mock_records)
 
     def close(self) -> None:
         self._client.close()

@@ -10,7 +10,6 @@ from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.models.param import Param
 
-# PYTHONPATH inclui /opt/airflow/src (configurado no Dockerfile)
 sys.path.insert(0, "/opt/airflow/src")
 
 logger = logging.getLogger(__name__)

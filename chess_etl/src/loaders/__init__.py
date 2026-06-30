@@ -1,6 +1,7 @@
 """
 src/loaders/__init__.py
 """
-from .parquet_loader import save_chess_com_games, save_lichess_games, read_parquet
+from .parquet_loader import save_games, read_parquet, CHESS_COM_SCHEMA, LICHESS_SCHEMA
 
-__all__ = ["save_chess_com_games", "save_lichess_games", "read_parquet"]
+__all__ = ["save_games", "read_parquet", "CHESS_COM_SCHEMA", "LICHESS_SCHEMA"]
+

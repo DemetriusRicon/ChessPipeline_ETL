@@ -65,7 +65,7 @@ def lichess_etl_dag():
         relative to the DAG's logical execution date.
         """
         from extractors.lichess_extractor import LichessExtractor
-        from loaders.parquet_loader import save_lichess_games
+        from loaders.parquet_loader import save_games, LICHESS_SCHEMA
         from utils.validation import resolve_period
 
         username = (
@@ -96,9 +96,11 @@ def lichess_etl_dag():
         if df.empty:
             logger.info("No games found in the specified period.")
             return 0
-        out_path = save_lichess_games(
+        out_path = save_games(
             df=df,
             source_month=source_month,
+            schema=LICHESS_SCHEMA,
+            subdir="lichess",
             base_path=bronze_path,
             username=username,
         )
@@ -114,11 +116,22 @@ def lichess_etl_dag():
         """Execute dbt run for Lichess bronze models."""
         import subprocess
         import json
+        import os
+        from airflow.hooks.base import BaseHook
         from utils.validation import resolve_period
 
         if games_count == 0:
             logger.info("Sem partidas novas — pulando dbt run.")
             return
+
+        # Obter conexão Airflow "localhost"
+        conn = BaseHook.get_connection("localhost")
+        env = os.environ.copy()
+        env["DBT_HOST"] = conn.host or "localhost"
+        env["DBT_USER"] = conn.login or ""
+        env["DBT_PASSWORD"] = conn.password or ""
+        env["DBT_PORT"] = str(conn.port or 5432)
+        env["DBT_DBNAME"] = conn.schema or "Xadrez"
 
         # Pass the period as dbt vars
         start_dt, end_dt = resolve_period(context.get("params", {}), context["logical_date"])
@@ -144,6 +157,7 @@ def lichess_etl_dag():
             ],
             capture_output=True,
             text=True,
+            env=env,
         )
         logger.info("dbt stdout:\n%s", result.stdout)
         if result.returncode != 0:

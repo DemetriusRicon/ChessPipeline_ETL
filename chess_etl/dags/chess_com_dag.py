@@ -84,7 +84,7 @@ def chess_com_etl_dag():
     def extract_and_save(archives: list[str], **context) -> list[str]:
         """Extrai partidas e salva em Parquet na Bronze Layer."""
         from extractors.chess_com_extractor import ChessComExtractor
-        from loaders.parquet_loader import save_chess_com_games
+        from loaders.parquet_loader import save_games, CHESS_COM_SCHEMA
 
         username = context["ti"].xcom_pull(key="chess_com_username") or "demetriusricon"
 
@@ -104,9 +104,11 @@ def chess_com_etl_dag():
                 parts = archive_url.rstrip("/").split("/")
                 source_month = f"{parts[-2]}-{parts[-1]}"
 
-                out_path = save_chess_com_games(
+                out_path = save_games(
                     df=df,
                     source_month=source_month,
+                    schema=CHESS_COM_SCHEMA,
+                    subdir="chess_com",
                     base_path=bronze_path,
                     username=username,
                 )
@@ -123,7 +125,18 @@ def chess_com_etl_dag():
         """Executa dbt run para os modelos Bronze do Chess.com."""
         import subprocess
         import json
+        import os
+        from airflow.hooks.base import BaseHook
         from utils.validation import resolve_period
+
+        # Obter conexão Airflow "localhost"
+        conn = BaseHook.get_connection("localhost")
+        env = os.environ.copy()
+        env["DBT_HOST"] = conn.host or "localhost"
+        env["DBT_USER"] = conn.login or ""
+        env["DBT_PASSWORD"] = conn.password or ""
+        env["DBT_PORT"] = str(conn.port or 5432)
+        env["DBT_DBNAME"] = conn.schema or "Xadrez"
 
         dbt_project_dir = "/opt/airflow/dbt_chess"
         logger.info("Executando dbt run (modelos bronze chess_com)...")
@@ -143,6 +156,7 @@ def chess_com_etl_dag():
             ],
             capture_output=True,
             text=True,
+            env=env,
         )
         logger.info("dbt stdout:\n%s", result.stdout)
         if result.returncode != 0:

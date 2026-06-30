@@ -81,98 +81,63 @@ def _df_to_arrow_table(df: pd.DataFrame, schema: pa.Schema) -> pa.Table:
 
 # ─── Funções públicas ─────────────────────────────────────────────────────────
 
-def save_chess_com_games(
+def save_games(
     df: pd.DataFrame,
     source_month: str,
+    schema: pa.Schema,
+    subdir: str,
     base_path: str | None = None,
-    username: str = "demetriusricon",
+    username: str = "",
 ) -> Path:
     """
-    Salva partidas Chess.com na Bronze Layer.
+    Salva partidas na Bronze Layer.
 
-    Caminho: {base_path}/chess_com/{username}/{YYYY}/{MM}/games.parquet
-
-    Args:
-        df: DataFrame normalizado de partidas Chess.com.
-        source_month: String 'YYYY-MM'.
-        base_path: Diretório raiz da Bronze Layer.
-        username: Username do jogador (para particionamento).
-
-    Returns:
-        Path do arquivo Parquet criado.
+    Caminho:
+    {base_path}/{subdir}/{username}/{YYYY}/{MM}/games.parquet
     """
     if df.empty:
-        logger.info("DataFrame vazio — nada a salvar para chess_com/%s.", source_month)
+        logger.info(
+            "DataFrame vazio — nada a salvar para %s/%s.",
+            subdir,
+            source_month,
+        )
         return Path()
 
     base = Path(base_path or os.getenv("BRONZE_BASE_PATH", "./data/bronze"))
     year, month = source_month.split("-")
-    out_dir = base / "chess_com" / username / year / month
+
+    partition_username = (
+        username.lower() if subdir == "lichess" else username
+    )
+
+    out_dir = base / subdir / partition_username / year / month
     _ensure_dir(out_dir)
     out_path = out_dir / "games.parquet"
 
-    table = _df_to_arrow_table(df, CHESS_COM_SCHEMA)
-
-    if out_path.exists():
-        # Append: lê existente, concatena e re-salva (deduplicando por game_id)
-        existing = pq.read_table(str(out_path))
-        combined = pa.concat_tables([existing, table])
-        combined_df = combined.to_pandas().drop_duplicates(subset=["game_id"])
-        table = _df_to_arrow_table(combined_df, CHESS_COM_SCHEMA)
-        logger.info("Append em %s (%d registros únicos)", out_path, len(combined_df))
-    else:
-        logger.info("Criando %s (%d registros)", out_path, len(df))
-
-    pq.write_table(table, str(out_path), compression="snappy")
-    logger.info("✅ Parquet salvo: %s", out_path)
-    return out_path
-
-
-def save_lichess_games(
-    df: pd.DataFrame,
-    source_month: str,
-    base_path: str | None = None,
-    username: str = "Demetrius01",
-) -> Path:
-    """
-    Salva partidas Lichess na Bronze Layer.
-
-    Caminho: {base_path}/lichess/{username}/{YYYY}/{MM}/games.parquet
-
-    Args:
-        df: DataFrame normalizado de partidas Lichess.
-        source_month: String 'YYYY-MM'.
-        base_path: Diretório raiz da Bronze Layer.
-        username: Username do jogador.
-
-    Returns:
-        Path do arquivo Parquet criado.
-    """
-    if df.empty:
-        logger.info("DataFrame vazio — nada a salvar para lichess/%s.", source_month)
-        return Path()
-
-    base = Path(base_path or os.getenv("BRONZE_BASE_PATH", "./data/bronze"))
-    year, month = source_month.split("-")
-    out_dir = base / "lichess" / username.lower() / year / month
-    _ensure_dir(out_dir)
-    out_path = out_dir / "games.parquet"
-
-    table = _df_to_arrow_table(df, LICHESS_SCHEMA)
+    table = _df_to_arrow_table(df, schema)
 
     if out_path.exists():
         existing = pq.read_table(str(out_path))
         combined = pa.concat_tables([existing, table])
-        combined_df = combined.to_pandas().drop_duplicates(subset=["game_id"])
-        table = _df_to_arrow_table(combined_df, LICHESS_SCHEMA)
-        logger.info("Append em %s (%d registros únicos)", out_path, len(combined_df))
+        combined_df = combined.to_pandas().drop_duplicates(
+            subset=["game_id"]
+        )
+        table = _df_to_arrow_table(combined_df, schema)
+        logger.info(
+            "Append em %s (%d registros únicos)",
+            out_path,
+            len(combined_df),
+        )
     else:
-        logger.info("Criando %s (%d registros)", out_path, len(df))
+        logger.info(
+            "Criando %s (%d registros)",
+            out_path,
+            len(df),
+        )
 
     pq.write_table(table, str(out_path), compression="snappy")
     logger.info("✅ Parquet salvo: %s", out_path)
     return out_path
-
 
 def read_parquet(path: str | Path) -> pd.DataFrame:
     """Lê um arquivo Parquet da Bronze Layer."""

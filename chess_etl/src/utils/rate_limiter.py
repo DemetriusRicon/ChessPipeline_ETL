@@ -1,8 +1,4 @@
-"""
-Rate limiter serial para Chess ETL Pipeline.
-Garante que apenas uma requisição por vez seja feita a cada provedor,
-conforme exigência das APIs (especialmente Lichess).
-"""
+# Garante que apenas uma requisição por vez seja feita a cada provedor
 
 from __future__ import annotations
 
@@ -17,12 +13,6 @@ logger = logging.getLogger(__name__)
 class SerialRateLimiter:
     """
     Limiter serial que garante acesso exclusivo a um provedor de API.
-    Thread-safe via Lock.
-
-    Uso:
-        limiter = SerialRateLimiter(min_interval=1.0)
-        with limiter.acquire():
-            response = client.get(url)
     """
 
     def __init__(self, min_interval: float = 1.0, name: str = "default") -> None:

@@ -1,6 +1,6 @@
 
   
-  create view "chess_etl"."bronze_bronze"."stg_chess_com_games__dbt_tmp" as (
+  create view "chess"."bronze_bronze"."stg_chess_com_games__dbt_tmp" as (
     -- =============================================================================
 -- stg_chess_com_games
 -- Bronze Layer — Partidas Chess.com
@@ -58,6 +58,10 @@ validated AS (
     -- Filtro de qualidade: apenas registros com game_id e pelo menos um jogador
     WHERE game_id IS NOT NULL
       AND (white_username IS NOT NULL OR black_username IS NOT NULL)
+    
+      AND end_time >= '2026-06-23'::timestamptz
+      AND end_time < ('2026-06-30'::timestamptz + interval '1 day')
+    
 ),
 
 deduped AS (

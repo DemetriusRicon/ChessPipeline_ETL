@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: gold_rating_evolution
+    description: >
+      Evolução mensal de rating, por categoria de tempo (bullet/blitz/rapid)
+      e por plataforma (chess_com / lichess). Uma linha por combinação de
+      plataforma + categoria + mês. Métrica principal: média do rating do
+      jogador nas partidas daquele mês.
+    columns:
+      - name: platform
+        description: "Plataforma de origem: chess_com ou lichess"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["chess_com", "lichess"]
+
+      - name: time_category
+        description: "Categoria de tempo: bullet, blitz ou rapid"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["bullet", "blitz", "rapid"]
+
+      - name: month
+        description: "Mês de referência (truncado para o primeiro dia)"
+        tests:
+          - not_null
+
+      - name: avg_rating
+        description: "Rating médio do jogador nas partidas do mês"
+        tests:
+          - not_null
+
+      - name: games_played
+        description: "Quantidade de partidas jogadas naquele mês/categoria/plataforma"
+        tests:
+          - not_null
+
+      - name: rating_change_vs_prev_month
+        description: >
+          Diferença do avg_rating em relação ao mês anterior, na mesma
+          plataforma e categoria. Nulo no primeiro mês de cada série.

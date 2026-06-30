@@ -73,8 +73,8 @@ validated AS (
     -- Filtro de qualidade: game_id obrigatório
     WHERE game_id IS NOT NULL
     
-      AND created_at >= '2026-06-11'::timestamptz
-      AND created_at < ('2026-06-18'::timestamptz + interval '1 day')
+      AND created_at >= '2026-06-23'::timestamptz
+      AND created_at < ('2026-06-30'::timestamptz + interval '1 day')
     
 ),
 

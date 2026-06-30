@@ -55,6 +55,10 @@ validated AS (
     -- Filtro de qualidade: apenas registros com game_id e pelo menos um jogador
     WHERE game_id IS NOT NULL
       AND (white_username IS NOT NULL OR black_username IS NOT NULL)
+    
+      AND end_time >= '2026-06-23'::timestamptz
+      AND end_time < ('2026-06-30'::timestamptz + interval '1 day')
+    
 ),
 
 deduped AS (
